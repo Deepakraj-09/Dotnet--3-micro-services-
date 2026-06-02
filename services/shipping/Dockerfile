@@ -1,7 +1,13 @@
-FROM eclipse-temurin:17-jre-jammy   # Uses OpenJDK 17 runtime (lightweight JRE on Ubuntu Jammy base)
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY ["ShippingService.csproj", "./"]
+RUN dotnet restore "ShippingService.csproj"
+COPY . .
+RUN dotnet publish "ShippingService.csproj" -c Release -o /app/publish
 
-WORKDIR /app                       # Creates /app directory (if not exists) and sets it as working directory
-
-COPY target/shipping-1.0.jar shipping.jar   # Copies built JAR from local 'target' folder into container and renames it
-
-CMD ["java", "-jar", "shipping.jar"]   # Runs the Java application when container starts
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+COPY --from=build /app/publish .
+EXPOSE 8080
+ENV ASPNETCORE_URLS=http://+:8080
+ENTRYPOINT ["dotnet", "ShippingService.dll"]
