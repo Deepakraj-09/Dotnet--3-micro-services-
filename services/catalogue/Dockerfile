@@ -1,7 +1,13 @@
-FROM node:18
-
-WORKDIR /app
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY ["CatalogueService.csproj", "./"]
+RUN dotnet restore "CatalogueService.csproj"
 COPY . .
-RUN npm install
+RUN dotnet publish "CatalogueService.csproj" -c Release -o /app/publish
 
-CMD ["node", "server.js"]
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+COPY --from=build /app/publish .
+EXPOSE 8080
+ENV ASPNETCORE_URLS=http://+:8080
+ENTRYPOINT ["dotnet", "CatalogueService.dll"]

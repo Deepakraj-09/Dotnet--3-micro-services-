@@ -1,9 +1,13 @@
-FROM node:18              # Uses official Node.js version 18 image as base
- 
-WORKDIR /app             # Sets working directory inside container to /app
- 
-COPY . .                 # Copies all files from current directory to /app inside container
- 
-RUN npm install          # Installs all dependencies defined in package.json
- 
-CMD ["node", "server.js"]  # Default command to start the application
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY ["CartService.csproj", "./"]
+RUN dotnet restore "CartService.csproj"
+COPY . .
+RUN dotnet publish "CartService.csproj" -c Release -o /app/publish
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+COPY --from=build /app/publish .
+EXPOSE 8080
+ENV ASPNETCORE_URLS=http://+:8080
+ENTRYPOINT ["dotnet", "CartService.dll"]
